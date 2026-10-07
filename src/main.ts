@@ -1,3 +1,6 @@
+// Modified by Joshua Almeida (360 Bench), 2026: Octokit calls moved to the
+// `rest` namespace of @actions/github 9 and the caught error typed for
+// TypeScript 5. Behaviour is unchanged. See NOTICE.
 import * as github from '@actions/github';
 import * as core from '@actions/core';
 
@@ -24,7 +27,7 @@ async function run(): Promise<void> {
     const remaining = [];
     for (const label of labels) {
       try {
-        await client.issues.removeLabel({
+        await client.rest.issues.removeLabel({
           name: label,
           owner,
           repo,
@@ -40,10 +43,11 @@ async function run(): Promise<void> {
       throw new Error(`failed to remove labels: ${remaining}`);
     }
   } catch (e) {
-    core.error(e);
+    const err = e instanceof Error ? e : new Error(String(e));
+    core.error(err);
 
     if (core.getInput('fail_on_error') === 'true') {
-      core.setFailed(e.message);
+      core.setFailed(err.message);
     }
   }
 }

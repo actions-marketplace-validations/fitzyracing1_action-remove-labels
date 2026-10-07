@@ -1,0 +1,35 @@
+# --bind mounts the working tree into the job container, so no checkout step.
+# Local end-to-end run with nektos/act against the fake GitHub API:
+#   FAKE_MISSING=not-there node test/fake-github.mjs 8765 /tmp/requests.json &
+#   act workflow_dispatch -W test/act-workflow.yml -P ubuntu-latest=node:24-bookworm-slim --bind \
+#     --env GITHUB_API_URL=http://127.0.0.1:8765
+# (a step-level env cannot override GITHUB_API_URL, on GitHub or in act)
+name: act self-test
+on: workflow_dispatch
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: remove labels with the local build
+        uses: ./
+        with:
+          github_token: ghs_act_token
+          repo: octo-org/hello-world
+          number: '42'
+          labels: |
+            bug
+            not-there
+            good first issue
+      - name: fail_on_error makes the missing label fail the step
+        id: strict
+        continue-on-error: true
+        uses: ./
+        with:
+          github_token: ghs_act_token
+          repo: octo-org/hello-world
+          number: '42'
+          fail_on_error: 'true'
+          labels: not-there
+      - name: check the strict step failed
+        if: steps.strict.outcome != 'failure'
+        run: exit 1
